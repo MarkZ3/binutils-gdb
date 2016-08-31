@@ -53,6 +53,7 @@
 #include "linespec.h"
 #include "extension.h"
 #include "gdbcmd.h"
+#include "observer.h"
 
 #include <ctype.h>
 #include "gdb_sys_time.h"
@@ -575,6 +576,9 @@ mi_cmd_thread_select (char *command, char **argv, int argc)
       make_cleanup (xfree, mi_error_message);
       error ("%s", mi_error_message);
     }
+
+  print_selected_thread_frame (interp_ui_out (top_level_interpreter ()),
+			       USER_SELECTED_THREAD | USER_SELECTED_FRAME);
 }
 
 void
@@ -2102,6 +2106,7 @@ mi_execute_command (const char *cmd, int from_tty)
 {
   char *token;
   struct mi_parse *command = NULL;
+  struct cleanup *cleanup = NULL;
 
   /* This is to handle EOF (^D). We just quit gdb.  */
   /* FIXME: we should call some API function here.  */
@@ -2161,10 +2166,15 @@ mi_execute_command (const char *cmd, int from_tty)
 	  /* Don't try report anything if there are no threads --
 	     the program is dead.  */
 	  && thread_count () != 0
-	  /* -thread-select explicitly changes thread. If frontend uses that
-	     internally, we don't want to emit =thread-selected, since
-	     =thread-selected is supposed to indicate user's intentions.  */
-	  && strcmp (command->command, "thread-select") != 0)
+	  /* For the cli commands thread and inferior, the event is already sent
+	     by the command, don't send it again.  */
+	  && ((command->op == CLI_COMMAND
+	       && strncmp (command->command, "thread", 6) != 0
+	       && strncmp (command->command, "inferior", 8) != 0)
+	      || (command->op == MI_COMMAND && command->argc <= 1)
+	      || (command->op == MI_COMMAND && command->argc > 1
+		  && strncmp (command->argv[1], "thread", 6) != 0
+		  && strncmp (command->argv[1], "inferior", 8) != 0)))
 	{
 	  struct mi_interp *mi
 	    = (struct mi_interp *) top_level_interpreter_data ();
@@ -2185,18 +2195,21 @@ mi_execute_command (const char *cmd, int from_tty)
 
 	  if (report_change)
 	    {
-	      struct thread_info *ti = inferior_thread ();
-	      struct cleanup *old_chain;
+	      /* Make sure we still keep event suppression.  This is
+		 handled in mi_cmd_execute so at this point this has been
+		 reset.  We still need it here however.  */
+	        if (command->cmd->suppress_notification != NULL)
+		  {
+		    cleanup = make_cleanup_restore_integer
+		      (command->cmd->suppress_notification);
+		    *command->cmd->suppress_notification = 1;
+		  }
 
-	      old_chain = make_cleanup_restore_target_terminal ();
-	      target_terminal_ours_for_output ();
+		observer_notify_user_selected_inf_thread_frame
+		  (USER_SELECTED_THREAD | USER_SELECTED_FRAME);
 
-	      fprintf_unfiltered (mi->event_channel,
-				  "thread-selected,id=\"%d\"",
-				  ti->global_num);
-	      gdb_flush (mi->event_channel);
-
-	      do_cleanups (old_chain);
+		if (cleanup != NULL)
+		  do_cleanups (cleanup);
 	    }
 	}
 

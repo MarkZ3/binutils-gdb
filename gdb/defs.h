@@ -750,6 +750,21 @@ enum block_enum
   FIRST_LOCAL_BLOCK = 2
 };
 
+/* User selection used in observer.h and multiple print functions.  */
+
+enum user_selected_what_flag
+  {
+    /* Inferior selected.  */
+    USER_SELECTED_INFERIOR = 1 << 1,
+
+    /* Thread selected.  */
+    USER_SELECTED_THREAD = 1 << 2,
+
+    /* Frame selected.  */
+    USER_SELECTED_FRAME = 1 << 3
+  };
+DEF_ENUM_FLAGS_TYPE (enum user_selected_what_flag, user_selected_what);
+
 #include "utils.h"
 
 #endif /* #ifndef DEFS_H */

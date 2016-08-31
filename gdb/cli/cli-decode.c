@@ -253,6 +253,7 @@ add_cmd (const char *name, enum command_class theclass, cmd_cfunc_ftype *fun,
   c->user_commands = NULL;
   c->cmd_pointer = NULL;
   c->alias_chain = NULL;
+  c->suppress_notification = NULL;
 
   return c;
 }
@@ -882,6 +883,21 @@ add_com_alias (const char *name, const char *oldname, enum command_class theclas
 	       int abbrev_flag)
 {
   return add_alias_cmd (name, oldname, theclass, abbrev_flag, &cmdlist);
+}
+
+/* Add an element with a suppress notification to the list of commands.  */
+
+struct cmd_list_element *
+add_com_suppress_notification (const char *name, enum command_class theclass,
+			       cmd_cfunc_ftype *fun, const char *doc,
+			       int *suppress_notification)
+{
+  struct cmd_list_element *element;
+
+  element = add_cmd (name, theclass, fun, doc, &cmdlist);
+  element->suppress_notification = suppress_notification;
+
+  return element;
 }
 
 /* Recursively walk the commandlist structures, and print out the
@@ -1884,8 +1900,21 @@ cmd_func_p (struct cmd_list_element *cmd)
 void
 cmd_func (struct cmd_list_element *cmd, char *args, int from_tty)
 {
+  struct cleanup *cleanup = NULL;
+
   if (cmd_func_p (cmd))
-    (*cmd->func) (cmd, args, from_tty);
+    {
+      if (cmd->suppress_notification != NULL)
+	{
+	  cleanup = make_cleanup_restore_integer (cmd->suppress_notification);
+	  *cmd->suppress_notification = 1;
+	}
+
+      (*cmd->func) (cmd, args, from_tty);
+
+      if (cleanup != NULL)
+	do_cleanups(cleanup);
+    }
   else
     error (_("Invalid command"));
 }
