@@ -25,6 +25,9 @@
 #include "source.h"
 #include "objfiles.h"
 #include "psymtab.h"
+#include "solib.h"
+#include "solist.h"
+#include "xregex.h"
 
 /* Return to the client the absolute path and line number of the 
    current file being executed.  */
@@ -105,6 +108,70 @@ mi_cmd_file_list_exec_source_files (char *command, char **argv, int argc)
 
   map_symbol_filenames (print_partial_file_name, NULL,
 			1 /*need_fullname*/);
+
+  ui_out_end (uiout, ui_out_type_list);
+}
+
+void
+mi_cmd_file_list_shared_libraries (char *command, char **argv, int argc)
+{
+  struct ui_out *uiout = current_uiout;
+  const char *pattern;
+  struct so_list *so = NULL;
+  struct gdbarch *gdbarch = target_gdbarch ();
+
+  switch (argc)
+    {
+    case 0:
+      pattern = NULL;
+      break;
+    case 1:
+      pattern = argv[0];
+      break;
+    default:
+      error (_("Usage: -file-list-shared-libraries [REGEXP]"));
+      break;
+    }
+
+  if (pattern != NULL)
+    {
+      char *re_err = re_comp (pattern);
+
+      if (re_err != NULL)
+	error (_("Invalid regexp: %s"), re_err);
+    }
+
+  update_solib_list (1);
+
+  /* Print the table header.  */
+  ui_out_begin (uiout, ui_out_type_list, "shared-libraries");
+
+  ALL_SO_LIBS (so)
+    {
+      if (so->so_name[0] == '\0')
+	continue;
+      if (pattern != NULL && !re_exec (so->so_name))
+	continue;
+
+      ui_out_begin (uiout, ui_out_type_tuple, NULL);
+
+      if (so->addr_high != 0)
+	{
+	  ui_out_field_core_addr (uiout, "from", gdbarch, so->addr_low);
+	  ui_out_field_core_addr (uiout, "to", gdbarch, so->addr_high);
+	}
+      else
+	{
+	  ui_out_field_skip (uiout, "from");
+	  ui_out_field_skip (uiout, "to");
+	}
+
+      ui_out_field_integer (uiout, "syms-read", so->symbols_loaded ? 1 : 0);
+
+      ui_out_field_string (uiout, "name", so->so_name);
+
+      ui_out_end (uiout, ui_out_type_tuple);
+    }
 
   ui_out_end (uiout, ui_out_type_list);
 }

@@ -31401,26 +31401,35 @@ The @value{GDBN} equivalent is @samp{info sources}.
 (gdb)
 @end smallexample
 
-@ignore
 @subheading The @code{-file-list-shared-libraries} Command
 @findex -file-list-shared-libraries
 
 @subsubheading Synopsis
 
 @smallexample
- -file-list-shared-libraries
+ -file-list-shared-libraries [ @var{regexp} ]
 @end smallexample
 
 List the shared libraries in the program.
+With a regular expression @var{regexp}, only those libraries whose
+names match @var{regexp} are listed.
 
 @subsubheading @value{GDBN} Command
 
 The corresponding @value{GDBN} command is @samp{info shared}.
 
 @subsubheading Example
-N.A.
+@smallexample
+(gdb)
+-file-list-exec-source-files
+^done,shared-libraries=[
+@{from="0x72815989",to="0x728162c0",syms-read="1",name="/lib/libfoo.so"@},
+@{from="0x76ee48c0",to="0x76ee9160",syms-read="1",name="/lib/libbar.so"@}]
+(gdb)
+@end smallexample
 
 
+@ignore
 @subheading The @code{-file-list-symbol-files} Command
 @findex -file-list-symbol-files
 

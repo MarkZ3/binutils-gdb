@@ -737,21 +737,7 @@ solib_used (const struct so_list *const known)
   return 0;
 }
 
-/* Synchronize GDB's shared object list with inferior's.
-
-   Extract the list of currently loaded shared objects from the
-   inferior, and compare it with the list of shared objects currently
-   in GDB's so_list_head list.  Edit so_list_head to bring it in sync
-   with the inferior's new list.
-
-   If we notice that the inferior has unloaded some shared objects,
-   free any symbolic info GDB had read about those shared objects.
-
-   Don't load symbolic info for any new shared objects; just add them
-   to the list, and leave their symbols_loaded flag clear.
-
-   If FROM_TTY is non-null, feel free to print messages about what
-   we're doing.  */
+/* See solib.h.  */
 
 void
 update_solib_list (int from_tty)
@@ -1096,7 +1082,7 @@ info_sharedlibrary_command (char *pattern, int from_tty)
 
   ui_out_table_body (uiout);
 
-  for (so = so_list_head; so; so = so->next)
+  ALL_SO_LIBS (so)
     {
       struct cleanup *lib_cleanup;
 

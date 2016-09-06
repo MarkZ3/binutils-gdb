@@ -23,6 +23,11 @@
 /* For domain_enum domain.  */
 #include "symtab.h"
 
+#define ALL_SO_LIBS(so) \
+    for (so = current_program_space->so_list; \
+	 so; \
+	 so = so->next)
+
 /* Forward declaration for target specific link map information.  This
    struct is opaque to all but the target specific file.  */
 struct lm_info;
