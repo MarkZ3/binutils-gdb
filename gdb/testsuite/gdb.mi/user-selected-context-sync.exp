@@ -19,7 +19,7 @@
 # This test considers the case where console and mi are two different uis
 # and mi is created with the new-ui command.
 #
-# It also considers the case were the console commands are sent directly in
+# It also considers the case where the console commands are sent directly in
 # the mi channel as described in PR 20487.
 #
 # It does so by starting 2 inferiors with 3 threads each.
@@ -47,7 +47,18 @@ if {[build_executable $testfile.exp $testfile ${srcfile} ${compile_options}] == 
 set bp_lineno [gdb_get_line_number "set break here"]
 set caller_lineno [gdb_get_line_number "caller"]
 
-# Make a regular expression for cli.
+# Make a regular expression to match the "thread selected" event for CLI.
+#
+# MODE can be either "all-stop" or "non-stop", indicating which one is currently
+#   in use.
+# INF is the inferior number we are expecting GDB to switch to, or -1 if we are
+#   not expecting GDB to announce an inferior switch.
+# THREAD is the thread number we are expecting GDB to switch to, or -1 if we are
+#   not expecting GDB to announce a thread switch.
+# FRAME is the frame number we are expecting GDB to switch to, or -1 if we are
+#   not expecting GDB to announce a frame switch.  See the FRAME_RE variable for
+#   details.
+# If LINEEND is 1, expect and end of line at the end of the regular expression.
 
 proc make_cli_re {mode inf thread frame lineend} {
     global srcfile bp_lineno caller_lineno
@@ -94,7 +105,16 @@ proc make_cli_re {mode inf thread frame lineend} {
     return $cli_re
 }
 
-# Make a regular expression for mi.
+# Make a regular expression to match the "thread selected" event for MI.
+#
+# MODE can be either "all-stop" or "non-stop", indicating which one is currently
+#   in use.
+# THREAD is the thread number we are expecting GDB to switch to, or -1 if we are
+#   not expecting GDB to announce a thread switch.
+# FRAME is the frame number we are expecting GDB to switch to, or -1 if we are
+#   not expecting GDB to announce a frame switch.  See the FRAME_RE variable for
+#   details.
+# If LINEEND is 1, expect and end of line at the end of the regular expression.
 
 proc make_mi_re {mode thread event frame lineend} {
     global srcfile bp_lineno caller_lineno hex
@@ -127,7 +147,24 @@ proc make_mi_re {mode thread event frame lineend} {
     return $mi_re
 }
 
-# Make a regular expression for cli in mi.
+# Make a regular expression to match the "thread selected" event for CLI-in-MI.
+#
+# COMMAND is the CLI command that was sent to GDB, which will be output in the
+#   console output stream.
+# MODE can be either "all-stop" or "non-stop", indicating which one is currently
+#   in use.
+# INF is the inferior number we are expecting GDB to switch to, or -1 if we are
+#   not expecting GDB to announce an inferior switch.
+# CLI_THREAD is the thread number as seen in the CLI (inferior-qualified) we are
+#   expecting GDB to switch to, or -1 if we are not expecting GDB to announce a
+#   thread switch.
+# MI_THREAD is the thread number as seen in the MI (global number) we are
+#   expecting GDB to switch to, or -1 if we are not expecting GDB to announce a
+#   thread switch.
+# FRAME is the frame number we are expecting GDB to switch to, or -1 if we are
+#   not expecting GDB to announce a frame switch.  See the FRAME_RE variable for
+#   details.
+# If LINEEND is 1, expect and end of line at the end of the regular expression.
 
 proc make_cli_in_mi_re {command mode inf cli_thread mi_thread event frame lineend} {
     global srcfile bp_lineno caller_lineno
@@ -212,14 +249,14 @@ proc test_setup {mode} {
 
     mi_gdb_exit
 
-    set saved_gdbflags $GDBFLAGS
+    save_vars { GDBFLAGS } {
+	if {$mode == "non-stop"} {
+	    set GDBFLAGS [concat $GDBFLAGS " -ex \"set non-stop 1\""]
+	}
 
-    if {$mode == "non-stop"} {
-	set GDBFLAGS [concat $GDBFLAGS " -ex \"set non-stop 1\""]
-    }
-
-    if {[mi_gdb_start "separate-mi-tty"] != 0} {
-	return
+	if {[mi_gdb_start "separate-mi-tty"] != 0} {
+	    return
+	}
     }
 
     mi_delete_breakpoints
@@ -247,8 +284,6 @@ proc test_setup {mode} {
 	test_continue_to_start $mode 2
 	gdb_test "inferior 1" [make_cli_re $mode 1 "1\\.1" 2 -1]
     }
-
-    set GDBFLAGS $saved_gdbflags
 }
 
 # Test selecting an inferior from cli.
@@ -395,7 +430,7 @@ proc test_cli_select_select_frame {mode frame} {
     }
 }
 
-# Test doing and up and then down command from cli.
+# Test doing an up and then down command from cli.
 
 proc test_cli_up_down {mode} {
     global gdb_main_spawn_id mi_spawn_id
@@ -467,7 +502,7 @@ proc test_cli_select_frame_twice {mode frame} {
     }
 
     if {$mode == "all-stop"} {
-	#No output thread has not changed.
+	# No output, thread has not changed.
 	set mi_re ""
 	set cli_re [make_cli_re $mode -1 "-1" $frame 0]
     } elseif {$mode == "non-stop"} {
@@ -490,7 +525,7 @@ proc test_cli_select_frame_twice {mode frame} {
     }
 }
 
-# Test thread command without any arguments fromt the cli.
+# Test thread command without any arguments from the cli.
 
 proc test_cli_select_thread_no_args {mode} {
     global gdb_main_spawn_id mi_spawn_id
@@ -606,7 +641,7 @@ proc test_mi_select_thread_twice {mode} {
     }
 
     with_spawn_id $gdb_main_spawn_id {
-	set test "cli select thread twice, frist call"
+	set test "cli select thread twice, first call"
 	gdb_test_multiple "" $test {
 	    -re $cli_re {
 		pass $test
@@ -675,11 +710,11 @@ proc test_mi_select_frame_twice {mode frame} {
     }
 
     with_spawn_id $mi_spawn_id {
-	mi_gdb_test "-stack-select-frame $frame" $mi_re "mi select frame twice, frist call"
+	mi_gdb_test "-stack-select-frame $frame" $mi_re "mi select frame twice, first call"
     }
 
     with_spawn_id $gdb_main_spawn_id {
-	set test "cli select frame twice, frist call"
+	set test "cli select frame twice, first call"
 	gdb_test_multiple "" $test {
 	    -re $cli_re {
 		pass $test
@@ -1006,7 +1041,7 @@ foreach mode {"all-stop" "non-stop"} {
 	    with_test_prefix $exec_mode {
 		test_cli_in_mi_select_inferior $mode $exec_mode
 		test_cli_in_mi_select_thread $mode $exec_mode
-		test_cli_in_mi_select_frame $mode $exec_mode 1 
+		test_cli_in_mi_select_frame $mode $exec_mode 1
 		test_cli_in_mi_select_frame $mode $exec_mode 0
 		# Reset thread/frame.
 		test_cli_in_mi_select_inferior $mode $exec_mode

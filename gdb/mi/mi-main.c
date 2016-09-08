@@ -2106,7 +2106,6 @@ mi_execute_command (const char *cmd, int from_tty)
 {
   char *token;
   struct mi_parse *command = NULL;
-  struct cleanup *cleanup = NULL;
 
   /* This is to handle EOF (^D). We just quit gdb.  */
   /* FIXME: we should call some API function here.  */
@@ -2129,8 +2128,15 @@ mi_execute_command (const char *cmd, int from_tty)
   if (command != NULL)
     {
       ptid_t previous_ptid = inferior_ptid;
+      struct cleanup *cleanup = make_cleanup (null_cleanup, NULL);
 
       command->token = token;
+
+      if (command->cmd != NULL && command->cmd->suppress_notification != NULL)
+        {
+          make_cleanup_restore_integer (command->cmd->suppress_notification);
+          *command->cmd->suppress_notification = 1;
+        }
 
       if (do_timings)
 	{
@@ -2195,25 +2201,14 @@ mi_execute_command (const char *cmd, int from_tty)
 
 	  if (report_change)
 	    {
-	      /* Make sure we still keep event suppression.  This is
-		 handled in mi_cmd_execute so at this point this has been
-		 reset.  We still need it here however.  */
-	        if (command->cmd->suppress_notification != NULL)
-		  {
-		    cleanup = make_cleanup_restore_integer
-		      (command->cmd->suppress_notification);
-		    *command->cmd->suppress_notification = 1;
-		  }
-
-		observer_notify_user_selected_inf_thread_frame
+		observer_notify_user_selected_context_changed
 		  (USER_SELECTED_THREAD | USER_SELECTED_FRAME);
-
-		if (cleanup != NULL)
-		  do_cleanups (cleanup);
 	    }
 	}
 
       mi_parse_free (command);
+
+      do_cleanups (cleanup);
     }
 }
 
@@ -2289,12 +2284,6 @@ mi_cmd_execute (struct mi_parse *parse)
     }
 
   current_context = parse;
-
-  if (parse->cmd->suppress_notification != NULL)
-    {
-      make_cleanup_restore_integer (parse->cmd->suppress_notification);
-      *parse->cmd->suppress_notification = 1;
-    }
 
   if (parse->cmd->argv_func != NULL)
     {

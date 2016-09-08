@@ -17,10 +17,6 @@
 
 *** Changes in GDB 7.12
 
-* MI =thread-selected event now includes the frame field. For example:
-
-     =thread-selected,id="3",frame={level="0",addr="0x00000000004007c0"}
-
 * GDB and GDBserver now build with a C++ compiler by default.
 
   The --enable-build-with-cxx configure option is now enabled by
@@ -151,6 +147,10 @@ signal-event EVENTID
   recording.  For example:
 
     =record-started,thread-group="i1",method="btrace",format="bts"
+
+* MI async record =thread-selected now includes the frame field.  For example:
+
+     =thread-selected,id="3",frame={level="0",addr="0x00000000004007c0"}
 
 * New targets
 

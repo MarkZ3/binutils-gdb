@@ -553,7 +553,7 @@ inferior_pid_to_str (int pid)
 void
 print_selected_inferior (struct ui_out *uiout)
 {
-  char buf[PATH_MAX+256];
+  char buf[PATH_MAX + 256];
   struct inferior *inf = current_inferior ();
 
   xsnprintf (buf, sizeof (buf),
@@ -757,7 +757,7 @@ inferior_command (char *args, int from_tty)
 	  switch_to_thread (tp->ptid);
 	}
 
-      observer_notify_user_selected_inf_thread_frame
+      observer_notify_user_selected_context_changed
 	(USER_SELECTED_INFERIOR
 	 | USER_SELECTED_THREAD
 	 | USER_SELECTED_FRAME);
@@ -771,7 +771,7 @@ inferior_command (char *args, int from_tty)
       switch_to_thread (null_ptid);
       set_current_program_space (inf->pspace);
 
-      observer_notify_user_selected_inf_thread_frame (USER_SELECTED_INFERIOR);
+      observer_notify_user_selected_context_changed (USER_SELECTED_INFERIOR);
     }
 }
 

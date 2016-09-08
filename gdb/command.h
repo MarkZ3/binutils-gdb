@@ -121,7 +121,7 @@ typedef void cmd_cfunc_ftype (char *args, int from_tty);
 struct cli_suppress_notification
 {
   /* Inferior, thread, frame selected notification suppressed?  */
-  int user_selected_inf_thread_frame;
+  int user_selected_context;
 };
 
 extern struct cli_suppress_notification cli_suppress_notification;

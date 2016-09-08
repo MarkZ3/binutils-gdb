@@ -149,13 +149,15 @@ print_stack_frame_to_uiout (struct ui_out *uiout, struct frame_info *frame,
 			    int print_level, enum print_what print_what,
 			    int set_current_sal)
 {
-  struct ui_out *saved_uiout;
-  saved_uiout = current_uiout;
+  struct cleanup *old_chain;
+
+  old_chain = make_cleanup_restore_current_uiout ();
+
   current_uiout = uiout;
 
   print_stack_frame (frame, print_level, print_what, set_current_sal);
 
-  current_uiout = saved_uiout;
+  do_cleanups (old_chain);
 }
 
 /* Show or print a stack frame FRAME briefly.  The output is formatted
@@ -2323,7 +2325,7 @@ select_frame_command (char *level_exp, int from_tty)
 
   select_frame (parse_frame_specification (level_exp, NULL));
   if (get_selected_frame_if_set () != prev_frame)
-    observer_notify_user_selected_inf_thread_frame (USER_SELECTED_FRAME);
+    observer_notify_user_selected_context_changed (USER_SELECTED_FRAME);
 }
 
 /* The "frame" command.  With no argument, print the selected frame
@@ -2337,7 +2339,7 @@ frame_command (char *level_exp, int from_tty)
 
   select_frame (parse_frame_specification (level_exp, NULL));
   if (get_selected_frame_if_set () != prev_frame)
-    observer_notify_user_selected_inf_thread_frame (USER_SELECTED_FRAME);
+    observer_notify_user_selected_context_changed (USER_SELECTED_FRAME);
   else
     print_selected_thread_frame (current_uiout, USER_SELECTED_FRAME);
 }
@@ -2370,7 +2372,7 @@ static void
 up_command (char *count_exp, int from_tty)
 {
   up_silently_base (count_exp);
-  observer_notify_user_selected_inf_thread_frame (USER_SELECTED_FRAME);
+  observer_notify_user_selected_context_changed (USER_SELECTED_FRAME);
 }
 
 /* Select the frame down one or COUNT_EXP stack levels from the previously
@@ -2409,7 +2411,7 @@ static void
 down_command (char *count_exp, int from_tty)
 {
   down_silently_base (count_exp);
-  observer_notify_user_selected_inf_thread_frame (USER_SELECTED_FRAME);
+  observer_notify_user_selected_context_changed (USER_SELECTED_FRAME);
 }
 
 
@@ -2646,7 +2648,7 @@ a command file or a user-defined command."));
 Select a stack frame without printing anything.\n\
 An argument specifies the frame to select.\n\
 It can be a stack frame number or the address of the frame.\n"),
-		 &cli_suppress_notification.user_selected_inf_thread_frame);
+		 &cli_suppress_notification.user_selected_context);
 
   add_com ("backtrace", class_stack, backtrace_command, _("\
 Print backtrace of all stack frames, or innermost COUNT frames.\n\

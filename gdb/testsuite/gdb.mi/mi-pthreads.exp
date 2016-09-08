@@ -54,7 +54,7 @@ proc check_mi_thread_command_set {} {
   foreach thread $thread_list {
       mi_gdb_test "-interpreter-exec console \"thread $thread\"" \
 	  ".*=thread-selected,id=\"$thread\".*\[r\n\]+\\^done\[\r\n\]+" \
-          "check =thread-selected: thread $thread"
+	  "check =thread-selected: thread $thread"
   }
 }
 

@@ -40,7 +40,7 @@ struct cli_interp
 /* Suppress notification struct.  */
 struct cli_suppress_notification cli_suppress_notification =
   {
-    0   /* user_selected_inf_thread_frame */
+    0   /* user_selected_context_changed */
   };
 
 /* Returns the INTERP's data cast as cli_interp if INTERP is a CLI,
@@ -235,17 +235,19 @@ cli_on_command_error (void)
   display_gdb_prompt (NULL);
 }
 
-/* Observer for the user_selected_inf_thread_frame notification.  */
+/* Observer for the user_selected_context_changed notification.  */
 
 static void
-cli_on_user_selected_inf_thread_frame (user_selected_what selection)
+cli_on_user_selected_context_changed (user_selected_what selection)
 {
   struct switch_thru_all_uis state;
-  struct thread_info *tp = find_thread_ptid (inferior_ptid);
+  struct thread_info *tp;
 
   /* This event is suppressed.  */
-  if (cli_suppress_notification.user_selected_inf_thread_frame)
+  if (cli_suppress_notification.user_selected_context)
     return;
+
+  tp = find_thread_ptid (inferior_ptid);
 
   SWITCH_THRU_ALL_UIS (state)
     {
@@ -427,6 +429,6 @@ _initialize_cli_interp (void)
   observer_attach_no_history (cli_on_no_history);
   observer_attach_sync_execution_done (cli_on_sync_execution_done);
   observer_attach_command_error (cli_on_command_error);
-  observer_attach_user_selected_inf_thread_frame
-    (cli_on_user_selected_inf_thread_frame);
+  observer_attach_user_selected_context_changed
+    (cli_on_user_selected_context_changed);
 }

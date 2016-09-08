@@ -1338,14 +1338,16 @@ mi_memory_changed (struct inferior *inferior, CORE_ADDR memaddr,
 /* Emit an event about the user selection of inf,thread or frame.  */
 
 static void
-mi_user_selected_inf_thread_frame (user_selected_what selection)
+mi_user_selected_context_changed (user_selected_what selection)
 {
   struct switch_thru_all_uis state;
-  struct thread_info *tp = find_thread_ptid (inferior_ptid);
+  struct thread_info *tp;
 
   /* Don't send an event if we're responding to an MI command.  */
-  if (mi_suppress_notification.user_selected_inf_thread_frame)
+  if (mi_suppress_notification.user_selected_context)
     return;
+
+  tp = find_thread_ptid (inferior_ptid);
 
   SWITCH_THRU_ALL_UIS (state)
   {
@@ -1360,14 +1362,16 @@ mi_user_selected_inf_thread_frame (user_selected_what selection)
 
     ui_out_redirect (mi_uiout, mi->event_channel);
 
-    old_chain = make_cleanup_restore_target_terminal ();
+    old_chain = make_cleanup_ui_out_redirect_pop (mi_uiout);
+
+    make_cleanup_restore_target_terminal ();
     target_terminal_ours_for_output ();
 
     if (selection & USER_SELECTED_INFERIOR)
       print_selected_inferior (mi->cli_uiout);
 
     if (tp != NULL
-	&& ((selection & (USER_SELECTED_THREAD | USER_SELECTED_FRAME))))
+	&& (selection & (USER_SELECTED_THREAD | USER_SELECTED_FRAME)))
       {
 	print_selected_thread_frame (mi->cli_uiout, selection);
 
@@ -1383,7 +1387,6 @@ mi_user_selected_inf_thread_frame (user_selected_what selection)
 	  }
       }
 
-    ui_out_redirect (mi_uiout, NULL);
     gdb_flush (mi->event_channel);
     do_cleanups (old_chain);
   }
@@ -1521,6 +1524,6 @@ _initialize_mi_interp (void)
   observer_attach_command_param_changed (mi_command_param_changed);
   observer_attach_memory_changed (mi_memory_changed);
   observer_attach_sync_execution_done (mi_on_sync_execution_done);
-  observer_attach_user_selected_inf_thread_frame
-    (mi_user_selected_inf_thread_frame);
+  observer_attach_user_selected_context_changed
+    (mi_user_selected_context_changed);
 }

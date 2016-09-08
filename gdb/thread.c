@@ -1958,13 +1958,13 @@ thread_command (char *tidstr, int from_tty)
   /* Print if the thread has not changed, otherwise an event will be sent.  */
   if (ptid_equal (inferior_ptid, previous_ptid))
     {
-      print_selected_thread_frame (current_uiout, USER_SELECTED_THREAD
-				   | USER_SELECTED_FRAME);
+      print_selected_thread_frame (current_uiout,
+				   USER_SELECTED_THREAD | USER_SELECTED_FRAME);
     }
   else
     {
-      observer_notify_user_selected_inf_thread_frame (USER_SELECTED_THREAD
-						      | USER_SELECTED_FRAME);
+      observer_notify_user_selected_context_changed (USER_SELECTED_THREAD
+						     | USER_SELECTED_FRAME);
     }
 }
 

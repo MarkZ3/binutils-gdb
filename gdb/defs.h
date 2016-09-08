@@ -53,6 +53,7 @@
 #include "ui-file.h"
 
 #include "host-defs.h"
+#include "common/enum-flags.h"
 
 /* Scope types enumerator.  List the types of scopes the compiler will
    accept.  */

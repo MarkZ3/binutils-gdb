@@ -27,8 +27,8 @@
 
 pthread_barrier_t barrier;
 
-void
-child_sub_function ()
+static void
+child_sub_function (void)
 {
   int test = 0;
   test++; /* set break here */
@@ -36,7 +36,7 @@ child_sub_function ()
   pthread_exit (NULL);
 }
 
-void *
+static void *
 child_function (void *args)
 {
   child_sub_function (); /* caller */
@@ -54,6 +54,10 @@ main (void)
     {
       pthread_create (&child_thread[i], NULL, child_function, NULL);
     }
+
+  sleep (30);
+
+  pthread_barrier_wait (&barrier);
 
   for (i = 0; i < NUM_THREADS; i++)
     {

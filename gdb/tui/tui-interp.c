@@ -209,14 +209,16 @@ tui_on_command_error (void)
 /* Observer for the user_selected_thread_frame notification.  */
 
 static void
-tui_on_user_selected_inf_thread_frame (user_selected_what selection)
+tui_on_user_selected_context_changed (user_selected_what selection)
 {
   struct switch_thru_all_uis state;
-  struct thread_info *tp = find_thread_ptid (inferior_ptid);
+  struct thread_info *tp;
 
   /* This event is suppressed.  */
-  if (cli_suppress_notification.user_selected_inf_thread_frame)
+  if (cli_suppress_notification.user_selected_context)
     return;
+
+  tp = find_thread_ptid (inferior_ptid);
 
   SWITCH_THRU_ALL_UIS (state)
     {
@@ -352,6 +354,6 @@ _initialize_tui_interp (void)
   observer_attach_no_history (tui_on_no_history);
   observer_attach_sync_execution_done (tui_on_sync_execution_done);
   observer_attach_command_error (tui_on_command_error);
-  observer_attach_user_selected_inf_thread_frame
-    (tui_on_user_selected_inf_thread_frame);
+  observer_attach_user_selected_context_changed
+    (tui_on_user_selected_context_changed);
 }
