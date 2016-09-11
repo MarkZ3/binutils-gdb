@@ -17,52 +17,48 @@
 
 */
 
-/* Note that this test is not expected to exit cleanly.  All threads will
-   block at the barrier and they won't be waken up. */
-
 #include <pthread.h>
 #include <unistd.h>
 
 #define NUM_THREADS 2
 
-pthread_barrier_t barrier;
+static int volatile quit = 0;
 
 static void
 child_sub_function (void)
 {
-  int test = 0;
-  test++; /* set break here */
-  pthread_barrier_wait (&barrier);
-  pthread_exit (NULL);
+  while (!quit); /* thread loop line */
 }
 
 static void *
 child_function (void *args)
 {
-  child_sub_function (); /* caller */
-}
+  child_sub_function (); /* thread caller line */
 
-pthread_t child_thread[NUM_THREADS];
+  return NULL;
+}
 
 int
 main (void)
 {
   int i = 0;
-  pthread_barrier_init (&barrier, NULL, NUM_THREADS + 1);
+  pthread_t threads[NUM_THREADS];
 
   for (i = 0; i < NUM_THREADS; i++)
-    {
-      pthread_create (&child_thread[i], NULL, child_function, NULL);
-    }
+    pthread_create (&threads[i], NULL, child_function, NULL);
 
-  sleep (30);
+  /* Leave enough time for the threads to reach their infinite loop. */
+  sleep (1);
+  
+  i = 0; /* main break line */
 
-  pthread_barrier_wait (&barrier);
+  sleep (2);
+  
+  /* Allow the test to exit cleanly.  */
+  quit = 1;
 
   for (i = 0; i < NUM_THREADS; i++)
-    {
-      pthread_join (child_thread[i], NULL);
-    }
+    pthread_join (threads[i], NULL);
 
   return 0;
 }
